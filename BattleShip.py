@@ -1,6 +1,6 @@
 """
 Name: Cooper Brown
-Date: 12/4/2021
+Date: 12/9/2021
 
 Description: A Simple battleship game using tkinter against a moderately competent AI player
 
@@ -8,7 +8,9 @@ Sample runs: sample Photos on GitHub as well as a .exe file
 https://github.com/GriseoVulpes11/LonelyBattleship/blob/master/README.md
 Sources:
 Heavy Use of Metallidogs tkinter strategies https://github.com/Metallidog/Battleship/blob/master/battleship.py
+as well as inspiration from DBz's battleship https://github.com/Dbz/Battleship
 Functions:
+
 
 I seperated
 this project into two classes the first class is the one that creates the board  using the create player and create AI
@@ -29,7 +31,6 @@ Classes allow the recursive loop that allows the program to be responsive, as we
 The GUI is what is used to play the game
 """
 
-
 import copy
 import random
 from functools import partial
@@ -39,92 +40,102 @@ import tkinter.messagebox
 root = Tk()
 root.wm_title("SEA BATTLE")
 
-class board :  # Class to create the board s
-    def __init__(self, root, size, aiShips, playerShips):
+
+class board:  # Class to create the boards
+    def __init__(self, root, size, aiShips, playerShips, shotList):
         self.tk = root  # Defines the in class root value
         self.size = size  # Defines the size of the board
-        self.__hiddenAiboard  = aiShips  # The board  for the AI battleships
-        self.__hiddenPlayerboard  = playerShips  # The player board
+        self.__hiddenAiboard = aiShips  # The board  for the AI battleships
+        self.__hiddenPlayerboard = playerShips  # The player board
         self.ocean = " "
         self.numOfPlayerShips = 0
-        self.shotList = []
+        self.shotList = shotList
         self.AiHit = False
+        self.AI = aiBehavor(None, size)
         """
         Creates a board  for the player on the top half of the screen, suing a for loop to create a grid and a click handler to regester clicks
         """
 
-    def createPlayerboard (self, activeboard , playerChoose=False):
-        def onClick(rowNum, colNum, activeboard , size, aiShips, playerShips, numOfPlayerShips):  # defines the click handler
-            if not activeboard [rowNum][colNum] == "+":
-                activeboard [rowNum][colNum] = "+"
-            board (root, size, aiShips, playerShips).createPlayerboard (activeboard )
+    def createPlayerboard(self, activeboard):
+        def onClick(rowNum, colNum, activeboard, size, aiShips, playerShips, shotList):  # defines the click handler
+            if not activeboard[rowNum][colNum] == "+":
+                activeboard[rowNum][colNum] = "+"
+            board(root, size, aiShips, playerShips, shotList).createPlayerboard(activeboard)
 
         # Creates board  in the space of the nested loop
 
         rowNum = 0
-        for row in activeboard :
+        for row in activeboard:
             colNum = 0
             for col in row:
                 Button(self.tk, text=col, bg="sky blue",
-                       command=partial(onClick, rowNum, colNum, activeboard , self.size, self.__hiddenAiboard ,
-                                       self.__hiddenPlayerboard , self.numOfPlayerShips + 1 ),width=2).grid(
-                    row=rowNum, column=colNum)
+                       command=partial(onClick, rowNum, colNum, activeboard, self.size, self.__hiddenAiboard,
+                                       self.__hiddenPlayerboard, self.shotList), width=2).grid(row=rowNum,
+                                                                                               column=colNum)
                 colNum += 1
             Label(self.tk, text="    ").grid(row=self.size, column=rowNum)
             rowNum += 1
+        if any("X" in sl for sl in activeboard) and not any("+" in sl for sl in activeboard):
+            Label(self.tk, text="Oh no the AI won, close and rerun to play again", font="Bondni").grid(row=0,
+                                                                                                       column=100)
 
     """
     Creates A board  for the ai on the bottom half of the screen, this board  takes attacks,
     the click handler starts the ai attacking the player board  
     """
 
-    def createAIboard (self, activeboard ):  # Creates board  in the space of the nested loop
-        def onClick(rowNum, colNum, activeboard , size, aiShips, playerShips, shotList,
-                    self):  # defines the click handler
+    def createAIboard(self, activeboard, aiHit=False):  # Creates board  in the space of the nested loop
+        def onClick(rowNum, colNum, activeboard, size, aiShips, playerShips, aiShot,
+                    self, aiHit):  # defines the click handler
             if aiShips[rowNum][colNum] == "+":
-                activeboard [rowNum][colNum] = "X"
+                activeboard[rowNum][colNum] = "X"
             else:
-                activeboard [rowNum][colNum] = "O"
-            ai = aiBehavor(None, size)
-            aiShot = ai.aiShot(shotList, self.AiHit)
+                activeboard[rowNum][colNum] = "O"
 
-            if self.__hiddenPlayerboard [aiShot[-1][0]][aiShot[-1][1]] == "+":
-                self.__hiddenPlayerboard [aiShot[-1][0]][aiShot[-1][1]] = "X"
-                self.AiHit = True
+            ai = aiBehavor(None, size)
+            aiShot.append(ai.aiShot(self.shotList, aiHit))
+
+            if self.__hiddenPlayerboard[aiShot[-1][0]][aiShot[-1][1]] == "+":
+                self.__hiddenPlayerboard[aiShot[-1][0]][aiShot[-1][1]] = "X"
+                aiHit = True
             else:
-                self.__hiddenPlayerboard [aiShot[-1][0]][aiShot[-1][1]] = "O"
-                self.AiHit = False
-            if not any('+' in x for x in self.__hiddenPlayerboard ):
-                Label(root, text="YOU HAVE LOST")
-            if not any('+' in x for x in aiShips):
-                Label(root, text="YOU HAVE WON")
-            board (root, size, aiShips, playerShips).createPlayerboard (self.__hiddenPlayerboard )
-            board (root, size, aiShips, playerShips).createAIboard (activeboard )  # refreshes board
+                self.__hiddenPlayerboard[aiShot[-1][0]][aiShot[-1][1]] = "O"
+                aiHit = False
+
+            board(root, size, aiShips, playerShips, aiShot).createPlayerboard(self.__hiddenPlayerboard)
+            board(root, size, aiShips, playerShips, aiShot).createAIboard(activeboard, aiHit)  # refreshes board
+            pass
 
         rowNum = 0
-        for row in activeboard :
+        for row in activeboard:  # Create AI button grid
             colNum = 0
             for col in row:
                 Button(self.tk, text=col, bg="pale violet red",
-                       command=partial(onClick, rowNum, colNum, activeboard , self.size, self.__hiddenAiboard ,
-                                       self.__hiddenPlayerboard , self.shotList, self),width=2).grid(row=rowNum + self.size + 1,
-                                                                                           column=colNum)
+                       command=partial(onClick, rowNum, colNum, activeboard, self.size, self.__hiddenAiboard,
+                                       self.__hiddenPlayerboard, self.shotList, self, aiHit), width=2).grid(
+                    row=rowNum + self.size + 1,
+                    column=colNum)
                 colNum += 1
             rowNum += 1
+        if any("X" in sl for sl in self.__hiddenAiboard) and not any(
+                "+" in sl for sl in self.__hiddenAiboard):  # Check If player Won
+            Label(self.tk, text="Congratulations You have won, close and rerun to play again", font="Bondni").grid(
+                row=0, column=100)
 
 
 """
-This class defines the behavor of the ai, placing ships and attacking the player mostly 
+This class defines the behavior of the ai, placing ships and attacking the player mostly 
 """
 
 
 class aiBehavor:
-    def __init__(self, hiddenAiboard , size):
-        self.ship_list = [5, 4, 3, 3, 2]  # List of ships the ai uses to place their ships
-        self.numberboard  = copy.deepcopy(hiddenAiboard )  # a second board  used in placing battleships
-        self.aiboard  = hiddenAiboard
+    def __init__(self, hiddenAiboard, size):
+        self.ship_list = [5, 3, 2]  # List of ships the ai uses to place their ships
+        self.numberboard = copy.deepcopy(hiddenAiboard)  # a second board  used in placing battleships
+        self.aiboard = hiddenAiboard
         self.boardSize = size
         self.ocean = " "
+        self.aiHitList = 0
 
     """
     Checks if the space in the ai board  defined as self.aiboard  is empty based on a given row and col 
@@ -136,7 +147,7 @@ class aiBehavor:
             return 0
         elif col < 0 or col >= self.boardSize:
             return 0
-        if self.aiboard [r][col] == self.ocean:
+        if self.aiboard[r][col] == self.ocean:
             return 1
         else:
             return 0
@@ -167,7 +178,7 @@ class aiBehavor:
             occupied = True
             while occupied:
                 occupied = False
-                ship_row = randomRow(orientation, size)
+                ship_row: int = randomRow(orientation, size)
                 ship_col = randomCol(orientation, self.boardSize)
                 if orientation:
                     for p in range(size):
@@ -181,29 +192,30 @@ class aiBehavor:
             The below codeblock places ships on the ai nested list 
             """
             if orientation:
-                self.aiboard [ship_row][ship_col] = "+"
-                self.aiboard [ship_row + size - 1][ship_col] = "+"
+                self.aiboard[ship_row][ship_col] = "+"
+                self.aiboard[ship_row + size - 1][ship_col] = "+"
                 if set_ship is not None:
-                    self.numberboard [ship_row][ship_col] = set_ship
-                    self.numberboard [ship_row + size - 1][ship_col] = set_ship
+                    self.numberboard[ship_row][ship_col] = set_ship
+                    self.numberboard[ship_row + size - 1][ship_col] = set_ship
                 for p in range(size - 2):
-                    self.aiboard [ship_row + p + 1][ship_col] = "+"
+                    self.aiboard[ship_row + p + 1][ship_col] = "+"
                     if set_ship is not None:
-                        self.numberboard [ship_row + p + 1][ship_col] = set_ship
+                        self.numberboard[ship_row + p + 1][ship_col] = set_ship
             else:
-                self.aiboard [ship_row][ship_col] = "+"
-                self.aiboard [ship_row][ship_col - size + 1] = "+"
+                self.aiboard[ship_row][ship_col] = "+"
+                self.aiboard[ship_row][ship_col - size + 1] = "+"
                 if set_ship is not None:
-                    self.numberboard [ship_row][ship_col] = set_ship
-                    self.numberboard [ship_row][ship_col - size + 1] = set_ship
+                    self.numberboard[ship_row][ship_col] = set_ship
+                    self.numberboard[ship_row][ship_col - size + 1] = set_ship
                 for p in range(size - 2):
-                    self.aiboard [ship_row][ship_col - p - 1] = "+"
+                    self.aiboard[ship_row][ship_col - p - 1] = "+"
                     if set_ship is not None:
-                        self.numberboard [ship_row][ship_col - p - 1] = set_ship
+                        self.numberboard[ship_row][ship_col - p - 1] = set_ship
         return self.aiboard
-
+    """
+    Takes the AI Shots
+    """
     def aiShot(self, shotList, aiHit):
-
         def checkAlready(shotsTaken, shotList):  # function to check if any instance in the list of shots randomly
             # found have already been taken
             returnList = []
@@ -213,86 +225,94 @@ class aiBehavor:
                 else:
                     returnList.append(cord)
             return returnList
+        """
+        Takes a random shot anywhere on the board that is empty 
+        """
+        def take_random_shot(size, shotList):
+            random_shot_list = []
+            for x in range(size):
+                for i in range(size):
+                    random_shot_list.append((i, x))
+            random_shot_list = checkAlready(shotList, random_shot_list)
+            backupShot = random_shot_list[random.randint(1, len(random_shot_list) - 1)]
+            return backupShot
 
         if aiHit:  # If there has been a hit the last turn the following is run
-            hitShot = shotList[-1]
+            hit_shot = shotList[-1]
             shots = []
             for x in range(4):
-                shots.append((hitShot[0] + 1, hitShot[1]))
-                shots.append((hitShot[0] - 1, hitShot[1]))
-                shots.append((hitShot[0], hitShot[1] + 1))
-                shots.append((hitShot[0], hitShot[1] - 1))
+                shots.append((hit_shot[0] + 1, hit_shot[1]))
+                shots.append((hit_shot[0] - 1, hit_shot[1]))
+                shots.append((hit_shot[0], hit_shot[1] + 1))
+                shots.append((hit_shot[0], hit_shot[1] - 1))
             shots = checkAlready(shotList, shots)
             return shots[random.randint(1, len(shots) - 1)]
 
-        if len(shotList) > 10:  # Creates a list of random cords to hit in a diagonal pattern returns one of them at
+        if len(shotList) < 10:  # Creates a list of random cords to hit in a diagonal pattern returns one of them at
             # random; only runs if there have been less than 10 shots
             possibleDiagShots = []
             for x in range(self.boardSize):
                 possibleDiagShots.append((x, x))
-                possibleDiagShots.append((self.boardSize - x, x))
+                possibleDiagShots.append((self.boardSize - x - 1, x))
             diagShots = checkAlready(shotList, possibleDiagShots)
-            Shot = diagShots[random.randint(1, len(possibleDiagShots) - 1)]
-            shotList.append(Shot)
-            return shotList
+            if diagShots:
+                shot = diagShots[random.randint(1, len(diagShots) - 1)]
+                return shot
+            else:
 
-        else:  # creates a list of cords to hit in a checkerd pattern for after 10 shots
-            try:
-                checkersShots = []
-                for x in range(self.boardSize):
-                    if x % 2 == 0:
-                        for i in range(self.boardSize):
-                            if i % 2 == 0:
-                                checkersShots.append((i, x))
-                    else:
-                        for i in range(self.boardSize):
-                            if not i % 2 == 0:
-                                checkersShots.append((i, x))
-                checker = checkAlready(shotList, checkersShots)
-                CheckerShot = checker[random.randint(1, len(checker) - 1)]
-                shotList.append(CheckerShot)
-                return shotList
-            except: # Begins returning random spots, only runs after the above runs out of shots to take extremely
-                # taxing to the computer
-                backup = []
-                for x in range(self.boardSize):
-                    for i in range(self.boardSize):
-                        backup.append(i, x)
-                backup = checkAlready(shotList, backup)
-                backupShot = backup[random.randint(1, len(checker) - 1)]
-                shotList.append(backupShot)
-                return shotList
+                return take_random_shot(self.boardSize, shotList)
+        else:
+            return take_random_shot(self.boardSize, shotList)
 
 
-def createNested(size):
+"""
+creates nested lists with only space elements
+"""
+
+
+def createNested(nested_size):
     nested = []
-    for x in range(size):
+    for x in range(nested_size):
         l = []
-        for i in range(size):
+        for i in range(nested_size):
             l.append(" ")
         nested.append(l)
     return nested
 
 
-size = 10
+"""
+Initializers
+"""
+size = 7
 
-aiboard  = createNested(size)
-hiddenPlayerboard  = createNested(size)
-hiddenAiboard  = createNested(size)
+"""
+Creates three empty boards with create nested
+"""
+aiboard = createNested(size)
+hidden_player_board = createNested(size)
+hiddenAiboard = createNested(size)
 
-ai = aiBehavor(hiddenAiboard , size)
-aiShipboard  = ai.placeShips()
+"""
+Calls AI class and places ships on the AI board 
+"""
+ai = aiBehavor(hiddenAiboard, size)
+aiShipboard = ai.placeShips()
+"""
+Initializes and creates the initial board object
+"""
+b = board(root, size, aiShips=aiShipboard, playerShips=hidden_player_board, shotList=[])
+b.createPlayerboard(hidden_player_board)
 
-b = board (root, size, aiShips=aiShipboard , playerShips=hiddenPlayerboard )
-b.createPlayerboard (hiddenPlayerboard , playerChoose=True)
+
+def onIntroClick():  # Shows Intro Message
+    tkinter.messagebox.showinfo("Welcome Sea Battle",
+                                "First, Place You battleships on the blue board wherever you want \n then, "
+                                "attack the AI by clicking in the red board \nBy Cooper Brown")
 
 
-def onIntroClick(): #Shows Intro Message
-    tkinter.messagebox.showinfo("Welcome Sea Battle","First Place You battleships on the blue board wherever you want \nattack the AI by clicking in the red board \nBy Cooper Brown")
+# Button To show intro message
+Button(root, text="Show Intro Message", command=onIntroClick).grid(row=10, column=1000)
 
-#Button To show intro message
-Button(root, text="Show Intro Message",command=onIntroClick).grid(row=10, column=1000)
-
-b.createAIboard (aiboard )
+b.createAIboard(aiboard)
 
 root.mainloop()
