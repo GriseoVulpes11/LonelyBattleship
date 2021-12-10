@@ -117,8 +117,7 @@ class board:  # Class to create the boards
                     column=colNum)
                 colNum += 1
             rowNum += 1
-        if any("X" in sl for sl in self.__hiddenAiboard) and not any(
-                "+" in sl for sl in self.__hiddenAiboard):  # Check If player Won
+        if any("X" in sl for sl in self.__hiddenAiboard) and not any("+" in sl for sl in self.__hiddenAiboard):  # Check If player Won
             Label(self.tk, text="Congratulations You have won, close and rerun to play again", font="Bondni").grid(
                 row=0, column=100)
 
@@ -306,8 +305,9 @@ b.createPlayerboard(hidden_player_board)
 
 def onIntroClick():  # Shows Intro Message
     tkinter.messagebox.showinfo("Welcome Sea Battle",
-                                "First, Place You battleships on the blue board wherever you want \n then, "
-                                "attack the AI by clicking in the red board \nBy Cooper Brown")
+                                "First, place your battleships on the blue board wherever you want \n then, "
+                                "attack the AI by clicking in the red board \n to play the game best place two 3 "
+                                "sized battleships and one 4 sizeed battleship \nBy Cooper Brown")
 
 
 # Button To show intro message
